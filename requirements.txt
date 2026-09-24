@@ -2,6 +2,8 @@ cryptography
 qrcode[pil]
 pypdf
 reportlab
+pymupdf
+opencv-python-headless
 streamlit
 pytest
 pandas
