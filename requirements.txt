@@ -1,0 +1,9 @@
+cryptography
+qrcode[pil]
+pypdf
+reportlab
+streamlit
+pytest
+pandas
+openpyxl
+python-dotenv

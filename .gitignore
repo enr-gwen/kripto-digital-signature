@@ -1,0 +1,24 @@
+# Rahasia: JANGAN PERNAH di-commit
+.env
+*.pem
+*.key
+keys/
+secrets/
+
+# Data runtime
+*.db
+*.sqlite3
+storage/
+uploads/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
