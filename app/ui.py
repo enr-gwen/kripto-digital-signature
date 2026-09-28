@@ -25,8 +25,8 @@ MAX_BYTES = 20 * 1024 * 1024  # batas 20 MB
 
 DB_PATH.parent.mkdir(exist_ok=True)
 
-st.set_page_config(page_title="Digital Signature")
-st.title(" Digital Signature")
+st.set_page_config(page_title="Digital Signature", page_icon="🔏")
+st.title("🔏 Digital Signature")
 st.caption("ECDSA P-256 + SHA-256 · QR-Code untuk verifikasi")
 
 if not PRIVATE_KEY_PATH.exists() or not PUBLIC_KEY_PATH.exists():
@@ -55,16 +55,38 @@ tab_sign, tab_verify = st.tabs(["✍️ Tanda Tangan", "🔍 Verifikasi"])
 # ---------------------------------------------------------------- TANDA TANGAN
 with tab_sign:
     st.subheader("Tandatangani dokumen PDF")
-    pdf_file = st.file_uploader("Unggah PDF", type=["pdf"], key="sign_pdf")
+    mode = st.radio(
+        "Jenis tanda tangan",
+        ["Tanda tangan baru", "Tambahkan tanda tangan susulan (multi-signer)"],
+        help=("'Tambahkan tanda tangan susulan' dipakai untuk alur persetujuan "
+              "berjenjang, mis. Ketua menandatangani dulu, lalu Dekan "
+              "menandatangani PDF hasil Ketua tersebut."),
+    )
+    parent_doc_id = None
+    if mode != "Tanda tangan baru":
+        parent_doc_id = st.text_input(
+            "ID tanda tangan sebelumnya (doc_id)",
+            help="Salin dari hasil tanda tangan tahap sebelumnya, atau dari "
+                "tabel riwayat saat verifikasi.")
+
+    pdf_file = st.file_uploader(
+        "Unggah PDF" if mode == "Tanda tangan baru"
+        else "Unggah PDF yang SUDAH ditandatangani tahap sebelumnya",
+        type=["pdf"], key="sign_pdf")
     nama = st.text_input("Nama penandatangan")
     jabatan = st.text_input("Jabatan")
     institusi = st.text_input("Institusi", value="Universitas Siliwangi")
-    st.text_input("Tanggal", value=date.today().isoformat(), disabled=True)
+    tanggal = st.date_input("Tanggal", value=date.today(),
+                            max_value=date.today(), format="YYYY-MM-DD")
 
     if st.button("Tandatangani", type="primary"):
+        kurang_parent = mode != "Tanda tangan baru" and not (parent_doc_id
+                                                              or "").strip()
         if pdf_file is None or not (nama.strip() and jabatan.strip()
-                                    and institusi.strip()):
-            st.warning("Lengkapi PDF, nama, jabatan, dan institusi.")
+                                    and institusi.strip()) or kurang_parent:
+            st.warning("Lengkapi PDF, nama, jabatan, institusi"
+                      + (", dan ID tanda tangan sebelumnya." if kurang_parent
+                         else "."))
         else:
             pdf_bytes = read_pdf(pdf_file)
             if pdf_bytes is not None:
@@ -74,11 +96,14 @@ with tab_sign:
                     signed, doc_id = service.sign_document(
                         pdf_bytes, nama=nama.strip(), jabatan=jabatan.strip(),
                         institusi=institusi.strip(), private_key=private_key,
-                        db_path=DB_PATH, base_url=BASE_URL)
+                        db_path=DB_PATH, base_url=BASE_URL,
+                        tanggal=tanggal.isoformat(),
+                        parent_doc_id=(parent_doc_id.strip() or None
+                                      if parent_doc_id else None))
                 except RuntimeError as e:
                     st.error(str(e))
-                except ValueError:
-                    st.error("Passphrase di `.env` tidak cocok dengan private key.")
+                except ValueError as e:
+                    st.error(f"Gagal: {e}")
                 except Exception as e:  # PDF rusak, dll.
                     st.error(f"Gagal menandatangani: {e}")
                 else:
@@ -90,6 +115,8 @@ with tab_sign:
     signed = st.session_state.get("signed")
     if signed:
         st.success(f"Dokumen berhasil ditandatangani. ID: `{signed['doc_id']}`")
+        st.caption("Simpan ID ini bila dokumen perlu ditandatangani pihak "
+                  "berikutnya (multi-signer).")
         st.download_button("⬇️ Unduh PDF bertanda tangan", data=signed["pdf"],
                            file_name=signed["filename"],
                            mime="application/pdf")
@@ -138,12 +165,21 @@ with tab_verify:
                         doc_id=url_doc_id)
                     if hasil.valid:
                         st.success(f"✅ VALID: {hasil.message}")
-                        st.table({"Data": ["ID", "Nama", "Jabatan", "Institusi",
-                                           "Tanggal"],
-                                  "Isi": [hasil.metadata["doc_id"],
-                                          hasil.metadata["nama"],
-                                          hasil.metadata["jabatan"],
-                                          hasil.metadata["institusi"],
-                                          hasil.metadata["tanggal"]]})
+                        if len(hasil.riwayat) > 1:
+                            st.markdown("**Riwayat tanda tangan (berurutan):**")
+                            st.table([
+                                {"Urutan": r["urutan"], "Nama": r["nama"],
+                                 "Jabatan": r["jabatan"],
+                                 "Tanggal": r["tanggal"], "ID": r["doc_id"]}
+                                for r in hasil.riwayat
+                            ])
+                        else:
+                            st.table({"Data": ["ID", "Nama", "Jabatan",
+                                               "Institusi", "Tanggal"],
+                                      "Isi": [hasil.metadata["doc_id"],
+                                              hasil.metadata["nama"],
+                                              hasil.metadata["jabatan"],
+                                              hasil.metadata["institusi"],
+                                              hasil.metadata["tanggal"]]})
                     else:
                         st.error(f"❌ TIDAK VALID ({hasil.status}): {hasil.message}")

@@ -6,6 +6,24 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
 CM = 28.3465  # poin per cm
+UKURAN_QR_CM = 3.0
+MARGIN_CM = 1.5
+JARAK_ANTAR_STEMPEL_CM = UKURAN_QR_CM + 1.2  # tinggi + jarak antar-stempel
+MAX_SLOT = 12  # batas wajar jumlah penandatangan berurutan
+
+
+def geometri_slot(width_pt: float, height_pt: float, slot: int,
+                  size_cm: float = UKURAN_QR_CM, margin_cm: float = MARGIN_CM):
+    """Kembalikan (x, y, size) dalam poin PDF untuk kotak QR pada `slot`
+    tertentu (0 = penandatangan pertama/paling bawah). Dipakai bersama oleh
+    stamp_qr() (menempel) dan app.qr (membaca ulang lewat crop presisi), agar
+    keduanya selalu sepakat soal posisi setiap stempel."""
+    size = size_cm * CM
+    margin = margin_cm * CM
+    jarak = size + 1.2 * CM
+    x = width_pt - margin - size
+    y = margin + slot * jarak
+    return x, y, size
 
 
 def _latin1(text: str) -> str:
@@ -14,8 +32,12 @@ def _latin1(text: str) -> str:
 
 
 def stamp_qr(pdf_bytes: bytes, qr_image, caption_lines,
-             size_cm: float = 3.0, margin_cm: float = 1.5) -> bytes:
+             size_cm: float = 3.0, margin_cm: float = 1.5, slot: int = 0) -> bytes:
     """Kembalikan bytes PDF baru dengan QR di pojok kanan bawah halaman terakhir.
+
+    `slot` (0, 1, 2, ...) menumpuk stempel ke ATAS agar tanda tangan multi-signer
+    tidak saling menimpa: slot 0 = penandatangan pertama (paling bawah),
+    slot 1 = penandatangan kedua (di atasnya), dan seterusnya.
 
     PENTING: bytes hasil fungsi ini yang di-hash dan ditandatangani, dan file
     itu tidak boleh disimpan ulang (re-save) oleh program lain, karena byte-nya
@@ -26,10 +48,7 @@ def stamp_qr(pdf_bytes: bytes, qr_image, caption_lines,
     width = float(last.mediabox.width)
     height = float(last.mediabox.height)
 
-    size = size_cm * CM
-    margin = margin_cm * CM
-    x = width - margin - size
-    y = margin
+    x, y, size = geometri_slot(width, height, slot, size_cm, margin_cm)
 
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=(width, height), pageCompression=0)
