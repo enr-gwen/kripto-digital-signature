@@ -3,7 +3,7 @@
 Tugas Proyek Aplikasi Kriptografi, Keamanan Informasi, Informatika UNSIL.
 Topik D: Digital Signature.
 
-**Penyusun:** <Nama> (<NPM>)
+**Penyusun:** Bunga Rylla Octaramadhany 247006111068
 
 ## Deskripsi
 Aplikasi untuk menandatangani dokumen PDF secara digital dan memverifikasi
