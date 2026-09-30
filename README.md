@@ -57,8 +57,17 @@ cp .env.example .env           # lalu isi KEY_PASSPHRASE
 ```
 
 ## Menjalankan
-_(diisi setelah aplikasi jadi)_
 
+1. Buat pasangan kunci pertama kali (cukup sekali, sebelum menjalankan aplikasi):
+```bash
+   python3 -c "from app import keys; keys.save_keypair('keys', 'penandatangan', keys.get_passphrase())"
+```
+2. Jalankan aplikasi web:
+```bash
+   streamlit run app/ui.py
+```
+3. Buka `http://localhost:8501` di browser (biasanya terbuka otomatis).
+4. Gunakan tab **Tanda Tangan** untuk menandatangani PDF, dan tab **Verifikasi** untuk memeriksa keasliannya.
 ## Pengujian
 ```bash
 pytest

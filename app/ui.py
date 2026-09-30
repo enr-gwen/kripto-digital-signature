@@ -25,8 +25,8 @@ MAX_BYTES = 20 * 1024 * 1024  # batas 20 MB
 
 DB_PATH.parent.mkdir(exist_ok=True)
 
-st.set_page_config(page_title="Digital Signature", page_icon="🔏")
-st.title("🔏 Digital Signature")
+st.set_page_config(page_title="Digital Signature")
+st.title("Digital Signature")
 st.caption("ECDSA P-256 + SHA-256 · QR-Code untuk verifikasi")
 
 if not PRIVATE_KEY_PATH.exists() or not PUBLIC_KEY_PATH.exists():
@@ -50,7 +50,7 @@ def read_pdf(uploaded):
     return data
 
 
-tab_sign, tab_verify = st.tabs(["✍️ Tanda Tangan", "🔍 Verifikasi"])
+tab_sign, tab_verify = st.tabs(["Tanda Tangan", "Verifikasi"])
 
 # ---------------------------------------------------------------- TANDA TANGAN
 with tab_sign:
@@ -117,7 +117,7 @@ with tab_sign:
         st.success(f"Dokumen berhasil ditandatangani. ID: `{signed['doc_id']}`")
         st.caption("Simpan ID ini bila dokumen perlu ditandatangani pihak "
                   "berikutnya (multi-signer).")
-        st.download_button("⬇️ Unduh PDF bertanda tangan", data=signed["pdf"],
+        st.download_button("Unduh PDF bertanda tangan", data=signed["pdf"],
                            file_name=signed["filename"],
                            mime="application/pdf")
         st.info("Jangan buka lalu simpan ulang PDF ini di aplikasi lain. "
@@ -164,7 +164,7 @@ with tab_verify:
                         pdf_bytes, public_key=public_key, db_path=DB_PATH,
                         doc_id=url_doc_id)
                     if hasil.valid:
-                        st.success(f"✅ VALID: {hasil.message}")
+                        st.success(f"VALID: {hasil.message}")
                         if len(hasil.riwayat) > 1:
                             st.markdown("**Riwayat tanda tangan (berurutan):**")
                             st.table([
@@ -182,4 +182,4 @@ with tab_verify:
                                               hasil.metadata["institusi"],
                                               hasil.metadata["tanggal"]]})
                     else:
-                        st.error(f"❌ TIDAK VALID ({hasil.status}): {hasil.message}")
+                        st.error(f"TIDAK VALID ({hasil.status}): {hasil.message}")
